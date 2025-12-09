@@ -1,0 +1,148 @@
+---
+import { validateUser, generateToken } from "../lib/auth.js";
+
+let error = "";
+
+if (Astro.request.method === "POST") {
+  const formData = await Astro.request.formData();
+  const email = formData.get("email");
+  const password = formData.get("password");
+
+  const user = await validateUser(email, password);
+
+  if (user) {
+    const token = generateToken(user);
+    Astro.cookies.set("auth-token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      maxAge: 86400, // 24 horas
+    });
+    return Astro.redirect("/dashboard");
+  } else {
+    error = "Credenciales inválidas";
+  }
+}
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - La Gruta Dashboard</title>
+    <link rel="stylesheet" href="/src/styles/global.css" />
+    <style>
+      body {
+        background: var(--bg-gradient);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--spacing-sm);
+      }
+
+      .login-container {
+        width: 100%;
+        max-width: 450px;
+      }
+
+      .login-card {
+        background: white;
+        padding: var(--spacing-2xl);
+        border-radius: var(--radius-modal);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+        border: 1px solid var(--gray-200);
+      }
+
+      .login-title {
+        margin-bottom: var(--spacing-2xl);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .login-logo {
+        max-width: 280px;
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+      }
+
+      .login-subtitle {
+        color: var(--gray-500);
+        font-size: var(--text-sm);
+        margin-bottom: var(--spacing-lg);
+      }
+
+      .login-form {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-md);
+      }
+
+      .login-btn {
+        margin-top: var(--spacing-sm);
+      }
+
+      /* Responsive */
+      @media (max-width: 480px) {
+        .login-card {
+          padding: var(--spacing-lg);
+          border-radius: var(--radius-card);
+        }
+
+        .login-logo {
+          max-width: 220px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <div class="login-card">
+        <div class="login-title">
+          <img
+            src="/images/lagruta-logo.png"
+            alt="La Gruta - Spa y Aguas Termales"
+            class="login-logo"
+          />
+        </div>
+        <p class="login-subtitle text-center">
+          Ingresa tus credenciales para acceder al sistema
+        </p>
+        
+        <form method="POST" class="login-form">
+          <div class="form-group">
+            <label for="email" class="form-label">📧 Email</label>
+            <input 
+              type="email" 
+              id="email" 
+              name="email" 
+              class="input" 
+              placeholder="tu@email.com"
+              required 
+            />
+          </div>
+          
+          <div class="form-group">
+            <label for="password" class="form-label">🔒 Contraseña</label>
+            <input 
+              type="password" 
+              id="password" 
+              name="password" 
+              class="input" 
+              placeholder="Tu contraseña"
+              required 
+            />
+          </div>
+          
+          <button type="submit" class="btn btn-primary login-btn w-full">
+            Iniciar Sesión
+          </button>
+          
+          {error && <div class="error">{error}</div>}
+        </form>
+      </div>
+    </div>
+  </body>
+</html>

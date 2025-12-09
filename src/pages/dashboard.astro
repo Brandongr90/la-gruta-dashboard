@@ -1,0 +1,1066 @@
+---
+import { verifyToken } from "../lib/auth.js";
+
+// Verificar autenticación
+const token = Astro.cookies.get("auth-token")?.value;
+const user = token ? verifyToken(token) : null;
+
+if (!user) {
+  return Astro.redirect("/login");
+}
+
+// Obtener datos del reporte del día
+let reporteData = {
+  total_entradas: 0,
+  total_cortesias: 0,
+  total_efectivo: 0,
+  total_transferencia: 0,
+  total_terminal1: 0,
+  total_terminal2: 0,
+  total_ventas: 0,
+};
+
+try {
+  const baseUrl = Astro.url.origin;
+  const response = await fetch(`${baseUrl}/api/reporte-dia`);
+  if (response.ok) {
+    const result = await response.json();
+    if (result.success && result.data) {
+      reporteData = result.data;
+    }
+  }
+} catch (error) {
+  console.error("Error al obtener reporte:", error);
+}
+
+// Calcular métricas
+const efectivo = typeof reporteData.total_efectivo === 'string' ? parseFloat(reporteData.total_efectivo) : (reporteData.total_efectivo || 0);
+const transferencia = typeof reporteData.total_transferencia === 'string' ? parseFloat(reporteData.total_transferencia) : (reporteData.total_transferencia || 0);
+const terminal1 = typeof reporteData.total_terminal1 === 'string' ? parseFloat(reporteData.total_terminal1) : (reporteData.total_terminal1 || 0);
+const terminal2 = typeof reporteData.total_terminal2 === 'string' ? parseFloat(reporteData.total_terminal2) : (reporteData.total_terminal2 || 0);
+const totalGeneral = efectivo + transferencia + terminal1 + terminal2;
+const cuentaFiscal = terminal1 + (efectivo * 0.1);
+const totalEntradas = typeof reporteData.total_entradas === 'string' ? parseInt(reporteData.total_entradas) : (reporteData.total_entradas || 0);
+const totalCortesias = typeof reporteData.total_cortesias === 'string' ? parseInt(reporteData.total_cortesias) : (reporteData.total_cortesias || 0);
+const entradasCobradas = totalEntradas - totalCortesias;
+
+// Calcular porcentajes
+const porcentajeEfectivo = totalGeneral > 0 ? (efectivo / totalGeneral * 100) : 0;
+const porcentajeTransferencia = totalGeneral > 0 ? (transferencia / totalGeneral * 100) : 0;
+const porcentajeTerminal1 = totalGeneral > 0 ? (terminal1 / totalGeneral * 100) : 0;
+const porcentajeTerminal2 = totalGeneral > 0 ? (terminal2 / totalGeneral * 100) : 0;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - La Gruta</title>
+    <link rel="stylesheet" href="/src/styles/global.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <header class="dashboard-nav">
+      <div class="nav-content">
+        <div class="user-info">
+          <div class="user-avatar">👤</div>
+          <div class="user-details">
+            <span class="user-greeting">Hola, <strong>{user.name}</strong></span>
+            <span class="current-date">{new Date().toLocaleDateString('es-MX', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })}</span>
+          </div>
+        </div>
+        <div class="nav-actions">
+          <button class="btn-refresh" onclick="window.location.reload()">
+            🔄 <span class="refresh-text">Actualizar</span>
+          </button>
+          <form action="/api/logout" method="POST" style="display: inline;">
+            <button type="submit" class="btn-logout">
+              🚪 <span class="logout-text">Salir</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </header>
+
+    <div class="container">
+      <!-- Header del reporte -->
+      <div class="report-header">
+        <div class="report-icon">📈</div>
+        <div class="report-title-section">
+          <h1 class="report-title" id="reportTitle">Reporte Completo del Día</h1>
+          <p class="report-date" id="reportDate">📅 {new Date().toLocaleDateString('es-MX', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })}</p>
+        </div>
+      </div>
+
+      <!-- Selector de Período -->
+      <div class="period-selector">
+        <button class="period-btn active" data-period="diario" id="btnDiario">
+          📅 Diario
+        </button>
+        <button class="period-btn" data-period="semanal" id="btnSemanal">
+          📊 Semanal
+        </button>
+      </div>
+
+      <!-- Resumen General -->
+      <div class="report-summary">
+        <div class="summary-item">
+          <div class="summary-icon">💰</div>
+          <div class="summary-info">
+            <span class="summary-label">Total del Día</span>
+            <span class="summary-value">${totalGeneral.toFixed(2)}</span>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-icon">🎫</div>
+          <div class="summary-info">
+            <span class="summary-label">Entradas Vendidas</span>
+            <span class="summary-value">{entradasCobradas}</span>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-icon">📊</div>
+          <div class="summary-info">
+            <span class="summary-label">Total Ventas</span>
+            <span class="summary-value">{reporteData.total_ventas}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Desglose por Forma de Pago -->
+      <div class="report-card payment-breakdown">
+        <div class="card-header">
+          <div class="card-icon">💳</div>
+          <h3>Desglose por Forma de Pago</h3>
+        </div>
+        <div class="payment-items">
+          <div class="payment-item">
+            <div class="payment-info">
+              <div class="payment-icon">💵</div>
+              <span class="payment-label">Efectivo</span>
+            </div>
+            <div class="payment-amount">
+              <span class="amount">${efectivo.toFixed(2)}</span>
+              <div class="progress-bar">
+                <div class="progress-fill efectivo" style={`width: ${porcentajeEfectivo}%`}></div>
+              </div>
+              <span class="percentage">{porcentajeEfectivo.toFixed(1)}%</span>
+            </div>
+          </div>
+          <div class="payment-item">
+            <div class="payment-info">
+              <div class="payment-icon">📱</div>
+              <span class="payment-label">Transferencia</span>
+            </div>
+            <div class="payment-amount">
+              <span class="amount">${transferencia.toFixed(2)}</span>
+              <div class="progress-bar">
+                <div class="progress-fill transferencia" style={`width: ${porcentajeTransferencia}%`}></div>
+              </div>
+              <span class="percentage">{porcentajeTransferencia.toFixed(1)}%</span>
+            </div>
+          </div>
+          <div class="payment-item">
+            <div class="payment-info">
+              <div class="payment-icon">💳</div>
+              <span class="payment-label">Terminal 1</span>
+            </div>
+            <div class="payment-amount">
+              <span class="amount">${terminal1.toFixed(2)}</span>
+              <div class="progress-bar">
+                <div class="progress-fill terminal1" style={`width: ${porcentajeTerminal1}%`}></div>
+              </div>
+              <span class="percentage">{porcentajeTerminal1.toFixed(1)}%</span>
+            </div>
+          </div>
+          <div class="payment-item">
+            <div class="payment-info">
+              <div class="payment-icon">💳</div>
+              <span class="payment-label">Terminal 2</span>
+            </div>
+            <div class="payment-amount">
+              <span class="amount">${terminal2.toFixed(2)}</span>
+              <div class="progress-bar">
+                <div class="progress-fill terminal2" style={`width: ${porcentajeTerminal2}%`}></div>
+              </div>
+              <span class="percentage">{porcentajeTerminal2.toFixed(1)}%</span>
+            </div>
+          </div>
+        </div>
+        <div class="payment-total">
+          <div class="total-line"></div>
+          <div class="total-amount">
+            <span class="total-label">Total General</span>
+            <span class="total-value">${totalGeneral.toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cuenta Fiscal y Entradas en Grid -->
+      <div class="report-grid">
+        <!-- Cuenta Fiscal -->
+        <div class="report-card fiscal-card">
+          <div class="card-header">
+            <div class="card-icon">🏛️</div>
+            <h3>Cuenta Fiscal</h3>
+          </div>
+          <div class="fiscal-items">
+            <div class="fiscal-item">
+              <div class="fiscal-item-info">
+                <span class="fiscal-label">💳 Terminal 1</span>
+                <span class="fiscal-amount">${terminal1.toFixed(2)}</span>
+              </div>
+            </div>
+            <div class="fiscal-item">
+              <div class="fiscal-item-info">
+                <span class="fiscal-label">💵 Efectivo (10%)</span>
+                <span class="fiscal-amount">${(efectivo * 0.1).toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+          <div class="fiscal-total">
+            <div class="total-line"></div>
+            <div class="total-amount">
+              <span class="total-label">Total Fiscal</span>
+              <span class="total-value">${cuentaFiscal.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Estadísticas de Entradas -->
+        <div class="report-card entries-card">
+          <div class="card-header">
+            <div class="card-icon">🎫</div>
+            <h3>Estadísticas de Entradas</h3>
+          </div>
+          <div class="entries-stats">
+            <div class="stat-item">
+              <div class="stat-icon-small">🎟️</div>
+              <div class="stat-info-small">
+                <span class="stat-label-small">Total Entradas</span>
+                <span class="stat-value-small">{totalEntradas}</span>
+              </div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-icon-small">🎁</div>
+              <div class="stat-info-small">
+                <span class="stat-label-small">Cortesías</span>
+                <span class="stat-value-small">{totalCortesias}</span>
+              </div>
+            </div>
+            <div class="stat-item highlight">
+              <div class="stat-icon-small">💰</div>
+              <div class="stat-info-small">
+                <span class="stat-label-small">Entradas Cobradas</span>
+                <span class="stat-value-small">{entradasCobradas}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+        color: #2d3748;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      /* Navigation Header */
+      .dashboard-nav {
+        background: linear-gradient(135deg, #ffffff 0%, #f0f8ff 100%);
+        border-bottom: 1px solid #e2e8f0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .nav-content {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 1rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .user-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .user-avatar {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+      }
+
+      .user-details {
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+      }
+
+      .user-greeting {
+        font-size: 0.875rem;
+        color: #2d3748;
+        font-weight: 500;
+      }
+
+      .user-greeting strong {
+        font-weight: 700;
+        color: #1a202c;
+      }
+
+      .current-date {
+        font-size: 0.75rem;
+        color: #718096;
+        text-transform: capitalize;
+      }
+
+      .nav-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      .btn-refresh, .btn-logout {
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        white-space: nowrap;
+      }
+
+      .btn-refresh {
+        background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+        color: white;
+      }
+
+      .btn-refresh:hover {
+        background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+        transform: translateY(-1px);
+      }
+
+      .btn-logout {
+        background: #ffffff;
+        color: #e53e3e;
+        border: 1px solid #e2e8f0;
+      }
+
+      .btn-logout:hover {
+        background: #fff5f5;
+        border-color: #fc8181;
+      }
+
+      /* Container */
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 1.5rem;
+      }
+
+      /* Report Header */
+      .report-header {
+        background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+        border-radius: 16px;
+        border-left: 5px solid #4299e1;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      /* Period Selector */
+      .period-selector {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+        padding: 0.5rem;
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        width: fit-content;
+      }
+
+      .period-btn {
+        padding: 0.75rem 1.5rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        background: #ffffff;
+        color: #4a5568;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .period-btn:hover {
+        border-color: #4299e1;
+        background: #f7fafc;
+      }
+
+      .period-btn.active {
+        background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+        color: white;
+        border-color: #4299e1;
+      }
+
+      .report-icon {
+        font-size: 2.5rem;
+        animation: pulse-icon 2s infinite;
+      }
+
+      @keyframes pulse-icon {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+      }
+
+      .report-title-section {
+        flex: 1;
+      }
+
+      .report-title {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1a202c;
+      }
+
+      .report-date {
+        margin: 0.25rem 0 0 0;
+        color: #4a5568;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-transform: capitalize;
+      }
+
+      /* Report Summary - Cards principales */
+      .report-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .summary-item {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: all 0.2s ease;
+        cursor: pointer;
+      }
+
+      .summary-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      .summary-item:nth-child(1) {
+        border-left: 4px solid #48bb78;
+      }
+
+      .summary-item:nth-child(2) {
+        border-left: 4px solid #4299e1;
+      }
+
+      .summary-item:nth-child(3) {
+        border-left: 4px solid #ed8936;
+      }
+
+      .summary-icon {
+        font-size: 2.5rem;
+        flex-shrink: 0;
+      }
+
+      .summary-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+
+      .summary-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #6b7280;
+      }
+
+      .summary-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1a202c;
+      }
+
+      /* Report Cards */
+      .report-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      .card-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1.25rem;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+      }
+
+      .card-icon {
+        font-size: 1.5rem;
+      }
+
+      .card-header h3 {
+        margin: 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1a202c;
+      }
+
+      /* Payment Breakdown */
+      .payment-breakdown {
+        border-left: 5px solid #ed8936;
+      }
+
+      .payment-items {
+        padding: 1.25rem;
+      }
+
+      .payment-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 1rem 0;
+        border-bottom: 1px solid #f1f5f9;
+      }
+
+      .payment-item:last-child {
+        border-bottom: none;
+      }
+
+      .payment-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .payment-icon {
+        font-size: 1.5rem;
+      }
+
+      .payment-label {
+        font-weight: 600;
+        color: #2d3748;
+        font-size: 1rem;
+      }
+
+      .payment-amount {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding-left: 2.25rem;
+      }
+
+      .payment-amount .amount {
+        font-weight: 700;
+        color: #1a202c;
+        font-size: 1.25rem;
+        min-width: 110px;
+      }
+
+      .progress-bar {
+        flex: 1;
+        height: 12px;
+        background: #e2e8f0;
+        border-radius: 6px;
+        overflow: hidden;
+        min-width: 100px;
+      }
+
+      .progress-fill {
+        height: 100%;
+        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .progress-fill.efectivo {
+        background: linear-gradient(90deg, #48bb78 0%, #68d391 100%);
+      }
+
+      .progress-fill.transferencia {
+        background: linear-gradient(90deg, #4299e1 0%, #63b3ed 100%);
+      }
+
+      .progress-fill.terminal1 {
+        background: linear-gradient(90deg, #ed8936 0%, #f6ad55 100%);
+      }
+
+      .progress-fill.terminal2 {
+        background: linear-gradient(90deg, #9f7aea 0%, #b794f6 100%);
+      }
+
+      .percentage {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #6b7280;
+        min-width: 50px;
+        text-align: right;
+      }
+
+      .payment-total {
+        padding: 1.25rem;
+        border-top: 2px solid #e2e8f0;
+        background: #f8fafc;
+      }
+
+      .total-amount {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .total-label {
+        font-weight: 600;
+        color: #2d3748;
+        font-size: 1.125rem;
+      }
+
+      .total-value {
+        font-weight: 700;
+        color: #1a202c;
+        font-size: 1.75rem;
+      }
+
+      /* Report Grid (Fiscal + Entries) */
+      .report-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 1.5rem;
+      }
+
+      /* Fiscal Card */
+      .fiscal-card {
+        border-left: 5px solid #4299e1;
+      }
+
+      .fiscal-items {
+        padding: 1.25rem;
+      }
+
+      .fiscal-item {
+        padding: 0.875rem 0;
+        border-bottom: 1px solid #f1f5f9;
+      }
+
+      .fiscal-item:last-child {
+        border-bottom: none;
+      }
+
+      .fiscal-item-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .fiscal-label {
+        font-weight: 500;
+        color: #4a5568;
+        font-size: 0.9375rem;
+      }
+
+      .fiscal-amount {
+        font-weight: 700;
+        color: #1a202c;
+        font-size: 1.125rem;
+      }
+
+      .fiscal-total {
+        padding: 1.25rem;
+        background: #f8fafc;
+        border-top: 2px solid #e2e8f0;
+      }
+
+      .total-line {
+        height: 2px;
+        background: linear-gradient(90deg, #4299e1 0%, #63b3ed 100%);
+        margin-bottom: 1rem;
+      }
+
+      /* Entries Card */
+      .entries-card {
+        border-left: 5px solid #48bb78;
+      }
+
+      .entries-stats {
+        padding: 1.25rem;
+      }
+
+      .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        background: #f8fafc;
+        border-radius: 10px;
+        transition: all 0.2s ease;
+      }
+
+      .stat-item:last-child {
+        margin-bottom: 0;
+      }
+
+      .stat-item:hover {
+        background: #edf2f7;
+        transform: translateX(4px);
+      }
+
+      .stat-item.highlight {
+        background: linear-gradient(135deg, #f0fff4 0%, #e6fffa 100%);
+        border: 1px solid #68d391;
+      }
+
+      .stat-icon-small {
+        font-size: 1.75rem;
+        flex-shrink: 0;
+      }
+
+      .stat-info-small {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+
+      .stat-label-small {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #6b7280;
+      }
+
+      .stat-value-small {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1a202c;
+      }
+
+      /* Mobile Responsive */
+      @media (max-width: 768px) {
+        .nav-content {
+          padding: 0.75rem 1rem;
+        }
+
+        .user-avatar {
+          width: 36px;
+          height: 36px;
+          font-size: 1rem;
+        }
+
+        .refresh-text, .logout-text {
+          display: none;
+        }
+
+        .btn-refresh, .btn-logout {
+          padding: 0.5rem;
+          min-width: 40px;
+          justify-content: center;
+        }
+
+        .container {
+          padding: 1rem;
+        }
+
+        .period-selector {
+          width: 100%;
+          justify-content: center;
+        }
+
+        .period-btn {
+          flex: 1;
+          padding: 0.625rem 1rem;
+          font-size: 0.875rem;
+        }
+
+        .report-header {
+          padding: 1rem;
+        }
+
+        .report-icon {
+          font-size: 2rem;
+        }
+
+        .report-title {
+          font-size: 1.25rem;
+        }
+
+        .report-date {
+          font-size: 0.75rem;
+        }
+
+        .report-summary {
+          grid-template-columns: 1fr;
+        }
+
+        .summary-item {
+          padding: 1.25rem;
+        }
+
+        .summary-value {
+          font-size: 1.5rem;
+        }
+
+        .report-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .payment-amount {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.75rem;
+          padding-left: 2.25rem;
+        }
+
+        .progress-bar {
+          width: 100%;
+          min-width: 100%;
+        }
+
+        .payment-amount .amount {
+          min-width: auto;
+        }
+
+        .percentage {
+          align-self: flex-end;
+        }
+      }
+
+      /* Small mobile devices */
+      @media (max-width: 480px) {
+        .user-greeting {
+          font-size: 0.75rem;
+        }
+
+        .current-date {
+          font-size: 0.6875rem;
+        }
+
+        .summary-item {
+          padding: 1rem;
+        }
+
+        .summary-icon {
+          font-size: 2rem;
+        }
+
+        .summary-value {
+          font-size: 1.375rem;
+        }
+
+        .payment-amount {
+          padding-left: 0;
+        }
+
+        .card-header {
+          padding: 1rem;
+        }
+
+        .payment-items {
+          padding: 1rem;
+        }
+
+        .fiscal-items, .entries-stats {
+          padding: 1rem;
+        }
+      }
+    </style>
+
+    <script is:inline>
+      // Función para formatear números como moneda
+      function formatMoney(value) {
+        return `$${parseFloat(String(value)).toFixed(2)}`;
+      }
+
+      // Función para cargar datos según el período
+      async function cargarDatos(periodo) {
+        const endpoint = periodo === 'diario' ? '/api/reporte-dia' : '/api/reporte-semanal';
+
+        try {
+          const response = await fetch(endpoint);
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            actualizarDashboard(result.data, periodo);
+          }
+        } catch (error) {
+          console.error('Error al cargar datos:', error);
+        }
+      }
+
+      // Función para actualizar el dashboard con nuevos datos
+      function actualizarDashboard(data, periodo) {
+        const efectivo = typeof data.total_efectivo === 'string' ? parseFloat(data.total_efectivo) : (data.total_efectivo || 0);
+        const transferencia = typeof data.total_transferencia === 'string' ? parseFloat(data.total_transferencia) : (data.total_transferencia || 0);
+        const terminal1 = typeof data.total_terminal1 === 'string' ? parseFloat(data.total_terminal1) : (data.total_terminal1 || 0);
+        const terminal2 = typeof data.total_terminal2 === 'string' ? parseFloat(data.total_terminal2) : (data.total_terminal2 || 0);
+        const totalGeneral = efectivo + transferencia + terminal1 + terminal2;
+        const cuentaFiscal = terminal1 + (efectivo * 0.1);
+        const totalEntradas = typeof data.total_entradas === 'string' ? parseInt(data.total_entradas) : (data.total_entradas || 0);
+        const totalCortesias = typeof data.total_cortesias === 'string' ? parseInt(data.total_cortesias) : (data.total_cortesias || 0);
+        const entradasCobradas = totalEntradas - totalCortesias;
+
+        // Calcular porcentajes
+        const porcentajeEfectivo = totalGeneral > 0 ? (efectivo / totalGeneral * 100) : 0;
+        const porcentajeTransferencia = totalGeneral > 0 ? (transferencia / totalGeneral * 100) : 0;
+        const porcentajeTerminal1 = totalGeneral > 0 ? (terminal1 / totalGeneral * 100) : 0;
+        const porcentajeTerminal2 = totalGeneral > 0 ? (terminal2 / totalGeneral * 100) : 0;
+
+        // Actualizar título
+        const titulo = periodo === 'diario' ? 'Reporte Completo del Día' : 'Reporte Semanal';
+        const reportTitle = document.getElementById('reportTitle');
+        if (reportTitle) reportTitle.textContent = titulo;
+
+        // Actualizar fecha
+        if (periodo === 'semanal' && data.fechaInicio && data.fechaFin) {
+          const reportDate = document.getElementById('reportDate');
+          if (reportDate) reportDate.textContent = `📅 ${data.fechaInicio} al ${data.fechaFin}`;
+        }
+
+        // Actualizar cards de resumen
+        const summaryValue1 = document.querySelector('.summary-item:nth-child(1) .summary-value');
+        if (summaryValue1) summaryValue1.textContent = formatMoney(totalGeneral);
+
+        const summaryValue2 = document.querySelector('.summary-item:nth-child(2) .summary-value');
+        if (summaryValue2) summaryValue2.textContent = String(entradasCobradas);
+
+        const summaryValue3 = document.querySelector('.summary-item:nth-child(3) .summary-value');
+        if (summaryValue3) summaryValue3.textContent = String(data.total_ventas || 0);
+
+        // Actualizar desglose de pagos
+        const paymentItems = document.querySelectorAll('.payment-item');
+
+        // Efectivo
+        const amount0 = paymentItems[0]?.querySelector('.amount');
+        const progressFill0 = paymentItems[0]?.querySelector('.progress-fill');
+        const percentage0 = paymentItems[0]?.querySelector('.percentage');
+        if (amount0) amount0.textContent = formatMoney(efectivo);
+        if (progressFill0 instanceof HTMLElement) progressFill0.style.width = `${porcentajeEfectivo}%`;
+        if (percentage0) percentage0.textContent = `${porcentajeEfectivo.toFixed(1)}%`;
+
+        // Transferencia
+        const amount1 = paymentItems[1]?.querySelector('.amount');
+        const progressFill1 = paymentItems[1]?.querySelector('.progress-fill');
+        const percentage1 = paymentItems[1]?.querySelector('.percentage');
+        if (amount1) amount1.textContent = formatMoney(transferencia);
+        if (progressFill1 instanceof HTMLElement) progressFill1.style.width = `${porcentajeTransferencia}%`;
+        if (percentage1) percentage1.textContent = `${porcentajeTransferencia.toFixed(1)}%`;
+
+        // Terminal 1
+        const amount2 = paymentItems[2]?.querySelector('.amount');
+        const progressFill2 = paymentItems[2]?.querySelector('.progress-fill');
+        const percentage2 = paymentItems[2]?.querySelector('.percentage');
+        if (amount2) amount2.textContent = formatMoney(terminal1);
+        if (progressFill2 instanceof HTMLElement) progressFill2.style.width = `${porcentajeTerminal1}%`;
+        if (percentage2) percentage2.textContent = `${porcentajeTerminal1.toFixed(1)}%`;
+
+        // Terminal 2
+        const amount3 = paymentItems[3]?.querySelector('.amount');
+        const progressFill3 = paymentItems[3]?.querySelector('.progress-fill');
+        const percentage3 = paymentItems[3]?.querySelector('.percentage');
+        if (amount3) amount3.textContent = formatMoney(terminal2);
+        if (progressFill3 instanceof HTMLElement) progressFill3.style.width = `${porcentajeTerminal2}%`;
+        if (percentage3) percentage3.textContent = `${porcentajeTerminal2.toFixed(1)}%`;
+
+        // Total General
+        const totalValue = document.querySelector('.payment-total .total-value');
+        if (totalValue) totalValue.textContent = formatMoney(totalGeneral);
+
+        // Cuenta Fiscal
+        const fiscalItems = document.querySelectorAll('.fiscal-item');
+        const fiscalAmount0 = fiscalItems[0]?.querySelector('.fiscal-amount');
+        const fiscalAmount1 = fiscalItems[1]?.querySelector('.fiscal-amount');
+        if (fiscalAmount0) fiscalAmount0.textContent = formatMoney(terminal1);
+        if (fiscalAmount1) fiscalAmount1.textContent = formatMoney(efectivo * 0.1);
+
+        const fiscalTotalValue = document.querySelector('.fiscal-total .total-value');
+        if (fiscalTotalValue) fiscalTotalValue.textContent = formatMoney(cuentaFiscal);
+
+        // Estadísticas de Entradas
+        const statItems = document.querySelectorAll('.stat-item');
+        const statValue0 = statItems[0]?.querySelector('.stat-value-small');
+        const statValue1 = statItems[1]?.querySelector('.stat-value-small');
+        const statValue2 = statItems[2]?.querySelector('.stat-value-small');
+        if (statValue0) statValue0.textContent = String(totalEntradas);
+        if (statValue1) statValue1.textContent = String(totalCortesias);
+        if (statValue2) statValue2.textContent = String(entradasCobradas);
+      }
+
+      // Event listeners para los botones
+      const btnDiario = document.getElementById('btnDiario');
+      const btnSemanal = document.getElementById('btnSemanal');
+
+      if (btnDiario) {
+        btnDiario.addEventListener('click', function() {
+          document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
+          this.classList.add('active');
+          cargarDatos('diario');
+        });
+      }
+
+      if (btnSemanal) {
+        btnSemanal.addEventListener('click', function() {
+          document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
+          this.classList.add('active');
+          cargarDatos('semanal');
+        });
+      }
+    </script>
+  </body>
+</html>
