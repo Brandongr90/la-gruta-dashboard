@@ -61,6 +61,7 @@ const porcentajeTerminal2 = totalGeneral > 0 ? (terminal2 / totalGeneral * 100) 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   </head>
   <body>
     <header class="dashboard-nav">
@@ -113,8 +114,13 @@ const porcentajeTerminal2 = totalGeneral > 0 ? (terminal2 / totalGeneral * 100) 
         <button class="period-btn" data-period="semanal" id="btnSemanal">
           📊 Semanal
         </button>
+        <button class="period-btn" data-period="metricas" id="btnMetricas">
+          📈 Métricas
+        </button>
       </div>
 
+      <!-- Contenedor de Reportes (Diario y Semanal) -->
+      <div id="reportesContainer">
       <!-- Resumen General -->
       <div class="report-summary">
         <div class="summary-item">
@@ -226,8 +232,8 @@ const porcentajeTerminal2 = totalGeneral > 0 ? (terminal2 / totalGeneral * 100) 
             </div>
             <div class="fiscal-item">
               <div class="fiscal-item-info">
-                <span class="fiscal-label">💵 Efectivo (10%)</span>
-                <span class="fiscal-amount">${(efectivo * 0.1).toFixed(2)}</span>
+                <span class="fiscal-label">💵 Efectivo (Variable Declarado de Manera Manual)</span>
+                <!-- <span class="fiscal-amount">${(efectivo * 0.1).toFixed(2)}</span> -->
               </div>
             </div>
           </div>
@@ -266,6 +272,145 @@ const porcentajeTerminal2 = totalGeneral > 0 ? (terminal2 / totalGeneral * 100) 
               <div class="stat-info-small">
                 <span class="stat-label-small">Entradas Cobradas</span>
                 <span class="stat-value-small">{entradasCobradas}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <!-- Contenedor de Métricas Mensuales -->
+      <div id="metricasContainer" style="display: none;">
+        <!-- Tarjeta de Gráfica de Ventas Diarias -->
+        <div class="report-card metrics-card">
+          <div class="card-header">
+            <div class="card-icon">📊</div>
+            <h3 id="metricasTitulo">Ventas Diarias del Mes</h3>
+          </div>
+          <div class="chart-container">
+            <canvas id="chartVentasDiarias"></canvas>
+          </div>
+        </div>
+
+        <!-- Tarjeta de Gráfica de Ventas por Semana -->
+        <div class="report-card metrics-card-semanas">
+          <div class="card-header">
+            <div class="card-icon">📅</div>
+            <h3>Desglose por Semanas del Mes</h3>
+          </div>
+          <div class="chart-container">
+            <canvas id="chartVentasSemanales"></canvas>
+          </div>
+        </div>
+
+        <!-- Tarjetas de Resumen por Semana -->
+        <div class="report-card">
+          <div class="card-header">
+            <div class="card-icon">🗓️</div>
+            <h3>Resumen por Semana</h3>
+          </div>
+          <div id="resumenSemanas" class="semanas-grid">
+            <!-- Se llenará dinámicamente con JavaScript -->
+          </div>
+        </div>
+
+        <!-- Análisis de Horarios Pico -->
+        <div class="report-card metrics-card-horarios">
+          <div class="card-header">
+            <div class="card-icon">⏰</div>
+            <h3>Análisis de Horarios - Identifica tus Horas Pico</h3>
+          </div>
+          <div class="chart-container">
+            <canvas id="chartHorarios"></canvas>
+          </div>
+        </div>
+
+        <!-- Insights de Negocio -->
+        <div class="insights-grid">
+          <!-- Horario Pico -->
+          <div class="insight-card insight-primary">
+            <div class="insight-icon">🕐</div>
+            <div class="insight-content">
+              <span class="insight-label">Horario Pico (Ventas)</span>
+              <span class="insight-value" id="horaPicoVentas">--:--</span>
+              <span class="insight-sublabel" id="ventasEnPico">-- transacciones</span>
+            </div>
+          </div>
+
+          <!-- Ticket Promedio -->
+          <div class="insight-card insight-success">
+            <div class="insight-icon">💳</div>
+            <div class="insight-content">
+              <span class="insight-label">Ticket Promedio</span>
+              <span class="insight-value" id="ticketPromedio">$0.00</span>
+              <span class="insight-sublabel" id="entradasPromedio">-- entradas/venta</span>
+            </div>
+          </div>
+
+          <!-- Mejor Hora (Ingresos) -->
+          <div class="insight-card insight-warning">
+            <div class="insight-icon">💰</div>
+            <div class="insight-content">
+              <span class="insight-label">Mayor Ingreso por Hora</span>
+              <span class="insight-value" id="horaPicoIngresos">--:--</span>
+              <span class="insight-sublabel" id="ingresosEnPico">$0.00</span>
+            </div>
+          </div>
+
+          <!-- Horario de Operación -->
+          <div class="insight-card insight-info">
+            <div class="insight-icon">🕒</div>
+            <div class="insight-content">
+              <span class="insight-label">Horario de Operación</span>
+              <span class="insight-value" id="horarioOperacion">--:-- a --:--</span>
+              <span class="insight-sublabel">Basado en ventas reales</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Distribución por Periodo del Día -->
+        <div class="report-card">
+          <div class="card-header">
+            <div class="card-icon">🌅</div>
+            <h3>Distribución por Periodo del Día</h3>
+          </div>
+          <div id="periodosContainer" class="periodos-grid">
+            <!-- Se llenará dinámicamente -->
+          </div>
+        </div>
+
+        <!-- Resumen Mensual -->
+        <div class="report-card">
+          <div class="card-header">
+            <div class="card-icon">💰</div>
+            <h3>Resumen del Mes</h3>
+          </div>
+          <div class="payment-items">
+            <div class="payment-item">
+              <div class="payment-info">
+                <div class="payment-icon">💵</div>
+                <span class="payment-label">Total Vendido</span>
+              </div>
+              <div class="payment-amount">
+                <span class="amount" id="totalMensual">$0.00</span>
+              </div>
+            </div>
+            <div class="payment-item">
+              <div class="payment-info">
+                <div class="payment-icon">🎫</div>
+                <span class="payment-label">Total Entradas</span>
+              </div>
+              <div class="payment-amount">
+                <span class="amount" id="entradasMensual">0</span>
+              </div>
+            </div>
+            <div class="payment-item">
+              <div class="payment-info">
+                <div class="payment-icon">📈</div>
+                <span class="payment-label">Total Ventas</span>
+              </div>
+              <div class="payment-amount">
+                <span class="amount" id="ventasMensual">0</span>
               </div>
             </div>
           </div>
@@ -792,6 +937,415 @@ const porcentajeTerminal2 = totalGeneral > 0 ? (terminal2 / totalGeneral * 100) 
         color: #1a202c;
       }
 
+      /* Métricas Card */
+      .metrics-card {
+        border-left: 5px solid #9f7aea;
+      }
+
+      .metrics-card-semanas {
+        border-left: 5px solid #48bb78;
+      }
+
+      .metrics-card-horarios {
+        border-left: 5px solid #ed8936;
+      }
+
+      .chart-container {
+        padding: 2rem 1.5rem;
+        background: #ffffff;
+        min-height: 400px;
+        position: relative;
+      }
+
+      #chartVentasDiarias {
+        max-height: 400px;
+      }
+
+      #chartVentasSemanales {
+        max-height: 350px;
+      }
+
+      #metricasContainer {
+        animation: fadeIn 0.3s ease-in;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      /* Grid de Semanas */
+      .semanas-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 1.25rem;
+        padding: 1.5rem;
+      }
+
+      .semana-card {
+        background: #ffffff;
+        border: 2px solid transparent;
+        border-radius: 16px;
+        padding: 0;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+
+      .semana-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+        background: linear-gradient(90deg, var(--semana-color-light) 0%, var(--semana-color) 100%);
+      }
+
+      .semana-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        border-color: var(--semana-color);
+      }
+
+      .semana-card.semana-1 {
+        --semana-color: #48bb78;
+        --semana-color-light: #68d391;
+        --semana-color-bg: #f0fff4;
+      }
+
+      .semana-card.semana-2 {
+        --semana-color: #4299e1;
+        --semana-color-light: #63b3ed;
+        --semana-color-bg: #ebf8ff;
+      }
+
+      .semana-card.semana-3 {
+        --semana-color: #ed8936;
+        --semana-color-light: #f6ad55;
+        --semana-color-bg: #fffaf0;
+      }
+
+      .semana-card.semana-4 {
+        --semana-color: #9f7aea;
+        --semana-color-light: #b794f6;
+        --semana-color-bg: #faf5ff;
+      }
+
+      .semana-card.semana-5 {
+        --semana-color: #f56565;
+        --semana-color-light: #fc8181;
+        --semana-color-bg: #fff5f5;
+      }
+
+      .semana-card.semana-6 {
+        --semana-color: #38b2ac;
+        --semana-color-light: #4fd1c5;
+        --semana-color-bg: #e6fffa;
+      }
+
+      .semana-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.25rem 1.25rem 1rem 1.25rem;
+        background: var(--semana-color-bg);
+      }
+
+      .semana-numero-badge {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .semana-numero {
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: white;
+        background: linear-gradient(135deg, var(--semana-color) 0%, var(--semana-color-light) 100%);
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .semana-rango {
+        font-size: 0.8125rem;
+        color: #4a5568;
+        font-weight: 600;
+        background: white;
+        padding: 0.375rem 0.75rem;
+        border-radius: 20px;
+        border: 1px solid #e2e8f0;
+      }
+
+      .semana-stats {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1.25rem;
+      }
+
+      .semana-stat {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .semana-stat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .semana-stat-label {
+        font-size: 0.8125rem;
+        color: #6b7280;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+      }
+
+      .semana-stat-icon {
+        font-size: 1rem;
+      }
+
+      .semana-stat-value {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: var(--semana-color);
+      }
+
+      .semana-stat-value.highlight {
+        font-size: 1.5rem;
+      }
+
+      .semana-progress-bar {
+        height: 8px;
+        background: #e2e8f0;
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .semana-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--semana-color) 0%, var(--semana-color-light) 100%);
+        border-radius: 10px;
+        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .semana-divider {
+        height: 1px;
+        background: linear-gradient(90deg, transparent 0%, #e2e8f0 50%, transparent 100%);
+        margin: 0.5rem 0;
+      }
+
+      /* Insights Grid */
+      .insights-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .insight-card {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 1.5rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .insight-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: var(--insight-color);
+      }
+
+      .insight-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+        border-color: var(--insight-color);
+      }
+
+      .insight-card.insight-primary {
+        --insight-color: #4299e1;
+        --insight-bg: #ebf8ff;
+      }
+
+      .insight-card.insight-success {
+        --insight-color: #48bb78;
+        --insight-bg: #f0fff4;
+      }
+
+      .insight-card.insight-warning {
+        --insight-color: #ed8936;
+        --insight-bg: #fffaf0;
+      }
+
+      .insight-card.insight-info {
+        --insight-color: #9f7aea;
+        --insight-bg: #faf5ff;
+      }
+
+      .insight-icon {
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        background: var(--insight-bg);
+        border-radius: 12px;
+        flex-shrink: 0;
+      }
+
+      .insight-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        flex: 1;
+      }
+
+      .insight-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .insight-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--insight-color);
+        line-height: 1.2;
+      }
+
+      .insight-sublabel {
+        font-size: 0.875rem;
+        color: #9ca3af;
+        font-weight: 500;
+      }
+
+      /* Periodos Grid */
+      .periodos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        padding: 1.25rem;
+      }
+
+      .periodo-card {
+        background: linear-gradient(135deg, var(--periodo-bg-light) 0%, var(--periodo-bg) 100%);
+        border: 2px solid var(--periodo-border);
+        border-radius: 12px;
+        padding: 1.25rem;
+        transition: all 0.3s ease;
+      }
+
+      .periodo-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        border-color: var(--periodo-color);
+      }
+
+      .periodo-card.periodo-mañana {
+        --periodo-color: #f59e0b;
+        --periodo-bg: #fffbeb;
+        --periodo-bg-light: #fef3c7;
+        --periodo-border: #fde68a;
+      }
+
+      .periodo-card.periodo-tarde {
+        --periodo-color: #3b82f6;
+        --periodo-bg: #eff6ff;
+        --periodo-bg-light: #dbeafe;
+        --periodo-border: #bfdbfe;
+      }
+
+      .periodo-card.periodo-noche {
+        --periodo-color: #8b5cf6;
+        --periodo-bg: #f5f3ff;
+        --periodo-bg-light: #ede9fe;
+        --periodo-border: #ddd6fe;
+      }
+
+      .periodo-card.periodo-madrugada {
+        --periodo-color: #6366f1;
+        --periodo-bg: #eef2ff;
+        --periodo-bg-light: #e0e7ff;
+        --periodo-border: #c7d2fe;
+      }
+
+      .periodo-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+      }
+
+      .periodo-icon {
+        font-size: 2rem;
+      }
+
+      .periodo-nombre {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: var(--periodo-color);
+      }
+
+      .periodo-horario {
+        font-size: 0.75rem;
+        color: #6b7280;
+        font-weight: 600;
+      }
+
+      .periodo-stats {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .periodo-stat {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .periodo-stat-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+      }
+
+      .periodo-stat-value {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--periodo-color);
+      }
+
+      #chartHorarios {
+        max-height: 400px;
+      }
+
       /* Mobile Responsive */
       @media (max-width: 768px) {
         .nav-content {
@@ -821,11 +1375,12 @@ const porcentajeTerminal2 = totalGeneral > 0 ? (terminal2 / totalGeneral * 100) 
         .period-selector {
           width: 100%;
           justify-content: center;
+          flex-wrap: nowrap;
         }
 
         .period-btn {
           flex: 1;
-          padding: 0.625rem 1rem;
+          padding: 0.625rem 0.875rem;
           font-size: 0.875rem;
         }
 
@@ -880,6 +1435,64 @@ const porcentajeTerminal2 = totalGeneral > 0 ? (terminal2 / totalGeneral * 100) 
         .percentage {
           align-self: flex-end;
         }
+
+        /* Estilos para Métricas en tablets */
+        .chart-container {
+          padding: 1.5rem 1rem;
+          min-height: 350px;
+        }
+
+        #chartVentasDiarias {
+          max-height: 350px;
+        }
+
+        #chartVentasSemanales {
+          max-height: 300px;
+        }
+
+        #chartHorarios {
+          max-height: 350px;
+        }
+
+        .semanas-grid {
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          padding: 1.25rem;
+          gap: 1rem;
+        }
+
+        .insights-grid {
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          gap: 1rem;
+        }
+
+        .insight-icon {
+          width: 50px;
+          height: 50px;
+          font-size: 1.75rem;
+        }
+
+        .insight-value {
+          font-size: 1.5rem;
+        }
+
+        .periodos-grid {
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        }
+
+        .semana-header {
+          padding: 1rem 1rem 0.875rem 1rem;
+        }
+
+        .semana-numero {
+          width: 45px;
+          height: 45px;
+          font-size: 1.125rem;
+        }
+
+        .semana-stats {
+          padding: 1rem;
+          gap: 0.875rem;
+        }
       }
 
       /* Small mobile devices */
@@ -918,6 +1531,187 @@ const porcentajeTerminal2 = totalGeneral > 0 ? (terminal2 / totalGeneral * 100) 
 
         .fiscal-items, .entries-stats {
           padding: 1rem;
+        }
+
+        /* Estilos para Métricas en móviles pequeños */
+        .chart-container {
+          padding: 1rem 0.75rem;
+          min-height: 300px;
+        }
+
+        #chartVentasDiarias {
+          max-height: 300px;
+        }
+
+        .period-selector {
+          gap: 0.5rem;
+          padding: 0.375rem;
+        }
+
+        .period-btn {
+          padding: 0.625rem 0.5rem;
+          font-size: 0.75rem;
+          gap: 0.25rem;
+          white-space: nowrap;
+        }
+
+        .card-header h3 {
+          font-size: 0.9375rem;
+        }
+
+        #metricasTitulo {
+          font-size: 0.875rem;
+        }
+
+        #chartVentasSemanales {
+          max-height: 280px;
+        }
+
+        #chartHorarios {
+          max-height: 300px;
+        }
+
+        .semanas-grid {
+          grid-template-columns: 1fr;
+          padding: 1rem;
+          gap: 1rem;
+        }
+
+        .insights-grid {
+          grid-template-columns: 1fr;
+          gap: 0.875rem;
+        }
+
+        .insight-card {
+          padding: 1.125rem;
+        }
+
+        .insight-icon {
+          width: 45px;
+          height: 45px;
+          font-size: 1.5rem;
+        }
+
+        .insight-label {
+          font-size: 0.6875rem;
+        }
+
+        .insight-value {
+          font-size: 1.375rem;
+        }
+
+        .insight-sublabel {
+          font-size: 0.8125rem;
+        }
+
+        .periodos-grid {
+          grid-template-columns: 1fr;
+          gap: 0.875rem;
+          padding: 1rem;
+        }
+
+        .semana-header {
+          padding: 0.875rem 0.875rem 0.75rem 0.875rem;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.625rem;
+        }
+
+        .semana-numero {
+          width: 40px;
+          height: 40px;
+          font-size: 1rem;
+        }
+
+        .semana-rango {
+          font-size: 0.75rem;
+          padding: 0.25rem 0.625rem;
+        }
+
+        .semana-stats {
+          padding: 0.875rem;
+          gap: 0.75rem;
+        }
+
+        .semana-stat-label {
+          font-size: 0.75rem;
+        }
+
+        .semana-stat-icon {
+          font-size: 0.875rem;
+        }
+
+        .semana-stat-value {
+          font-size: 1rem;
+        }
+
+        .semana-stat-value.highlight {
+          font-size: 1.25rem;
+        }
+
+        .semana-progress-bar {
+          height: 6px;
+        }
+      }
+
+      /* Extra small devices */
+      @media (max-width: 360px) {
+        .period-btn {
+          padding: 0.5rem 0.375rem;
+          font-size: 0.6875rem;
+        }
+
+        #metricasTitulo {
+          font-size: 0.8125rem;
+        }
+
+        .semana-header {
+          padding: 0.75rem 0.75rem 0.625rem 0.75rem;
+        }
+
+        .semana-numero {
+          width: 36px;
+          height: 36px;
+          font-size: 0.9375rem;
+        }
+
+        .semana-rango {
+          font-size: 0.6875rem;
+        }
+
+        .semana-stats {
+          padding: 0.75rem;
+          gap: 0.625rem;
+        }
+
+        .semana-stat-label {
+          font-size: 0.6875rem;
+        }
+
+        .semana-stat-icon {
+          font-size: 0.75rem;
+        }
+
+        .semana-stat-value {
+          font-size: 0.9375rem;
+        }
+
+        .semana-stat-value.highlight {
+          font-size: 1.125rem;
+        }
+
+        .semana-progress-bar {
+          height: 5px;
+        }
+
+        .insight-icon {
+          width: 40px;
+          height: 40px;
+          font-size: 1.375rem;
+        }
+
+        .insight-value {
+          font-size: 1.25rem;
         }
       }
     </style>
@@ -1045,11 +1839,500 @@ const porcentajeTerminal2 = totalGeneral > 0 ? (terminal2 / totalGeneral * 100) 
       // Event listeners para los botones
       const btnDiario = document.getElementById('btnDiario');
       const btnSemanal = document.getElementById('btnSemanal');
+      const btnMetricas = document.getElementById('btnMetricas');
+      const reportesContainer = document.getElementById('reportesContainer');
+      const metricasContainer = document.getElementById('metricasContainer');
+
+      // Variable para almacenar las instancias de las gráficas
+      let chartInstance = null;
+      let chartSemanalInstance = null;
+      let chartHorariosInstance = null;
+
+      // Función para mostrar reportes y ocultar métricas
+      function mostrarReportes() {
+        if (reportesContainer) reportesContainer.style.display = 'block';
+        if (metricasContainer) metricasContainer.style.display = 'none';
+      }
+
+      // Función para mostrar métricas y ocultar reportes
+      function mostrarMetricas() {
+        if (reportesContainer) reportesContainer.style.display = 'none';
+        if (metricasContainer) metricasContainer.style.display = 'block';
+      }
+
+      // Función para cargar análisis de horarios
+      async function cargarAnalisisHorarios() {
+        try {
+          const response = await fetch('/api/analisis-horarios');
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            const data = result.data;
+
+            // Actualizar tarjetas de insights
+            const horaPicoVentasEl = document.getElementById('horaPicoVentas');
+            const ventasEnPicoEl = document.getElementById('ventasEnPico');
+            const ticketPromedioEl = document.getElementById('ticketPromedio');
+            const entradasPromedioEl = document.getElementById('entradasPromedio');
+            const horaPicoIngresosEl = document.getElementById('horaPicoIngresos');
+            const ingresosEnPicoEl = document.getElementById('ingresosEnPico');
+            const horarioOperacionEl = document.getElementById('horarioOperacion');
+
+            if (horaPicoVentasEl) {
+              horaPicoVentasEl.textContent = `${data.horaPicoVentas.toString().padStart(2, '0')}:00`;
+            }
+
+            const ventasEnHoraPico = data.ventasPorHora.find(h => h.hora === data.horaPicoVentas);
+            if (ventasEnPicoEl && ventasEnHoraPico) {
+              ventasEnPicoEl.textContent = `${ventasEnHoraPico.ventas} transacciones`;
+            }
+
+            if (ticketPromedioEl) {
+              ticketPromedioEl.textContent = formatMoney(data.ticketPromedio);
+            }
+
+            if (entradasPromedioEl) {
+              entradasPromedioEl.textContent = `${data.entradasPromedio.toFixed(1)} entradas/venta`;
+            }
+
+            if (horaPicoIngresosEl) {
+              horaPicoIngresosEl.textContent = `${data.horaPicoIngresos.toString().padStart(2, '0')}:00`;
+            }
+
+            const ingresosEnHoraPico = data.ventasPorHora.find(h => h.hora === data.horaPicoIngresos);
+            if (ingresosEnPicoEl && ingresosEnHoraPico) {
+              ingresosEnPicoEl.textContent = formatMoney(ingresosEnHoraPico.total);
+            }
+
+            if (horarioOperacionEl) {
+              horarioOperacionEl.textContent = `${data.horaApertura.toString().padStart(2, '0')}:00 a ${data.horaCierre.toString().padStart(2, '0')}:00`;
+            }
+
+            // Crear gráfica de horarios
+            const labelsHorarios = data.ventasPorHora.map(h => h.horaFormato);
+            const ventasHorarios = data.ventasPorHora.map(h => h.total);
+
+            const ctxHorarios = document.getElementById('chartHorarios');
+            if (ctxHorarios) {
+              const isMobile = window.innerWidth <= 768;
+              const isSmallMobile = window.innerWidth <= 480;
+
+              chartHorariosInstance = new Chart(ctxHorarios, {
+                type: 'line',
+                data: {
+                  labels: labelsHorarios,
+                  datasets: [{
+                    label: 'Ventas ($)',
+                    data: ventasHorarios,
+                    backgroundColor: 'rgba(237, 137, 54, 0.1)',
+                    borderColor: 'rgba(237, 137, 54, 1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: '#ed8936',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                  }]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: true,
+                  aspectRatio: isSmallMobile ? 1 : (isMobile ? 1.3 : 2.5),
+                  plugins: {
+                    legend: {
+                      display: true,
+                      position: 'top',
+                      labels: {
+                        font: {
+                          size: isSmallMobile ? 11 : (isMobile ? 12 : 14)
+                        },
+                        padding: isMobile ? 10 : 15
+                      }
+                    },
+                    tooltip: {
+                      callbacks: {
+                        label: function(context) {
+                          const index = context.dataIndex;
+                          const horario = data.ventasPorHora[index];
+                          return [
+                            'Ventas: $' + context.parsed.y.toFixed(2),
+                            'Transacciones: ' + horario.ventas,
+                            'Entradas: ' + horario.entradas
+                          ];
+                        }
+                      },
+                      titleFont: {
+                        size: isSmallMobile ? 11 : 13
+                      },
+                      bodyFont: {
+                        size: isSmallMobile ? 10 : 12
+                      }
+                    }
+                  },
+                  scales: {
+                    x: {
+                      ticks: {
+                        font: {
+                          size: isSmallMobile ? 8 : (isMobile ? 9 : 11)
+                        },
+                        maxRotation: isMobile ? 45 : 0,
+                        minRotation: isMobile ? 45 : 0,
+                        autoSkip: true,
+                        maxTicksLimit: isSmallMobile ? 8 : (isMobile ? 12 : 24)
+                      }
+                    },
+                    y: {
+                      beginAtZero: true,
+                      ticks: {
+                        font: {
+                          size: isSmallMobile ? 10 : (isMobile ? 11 : 12)
+                        },
+                        callback: function(value) {
+                          return '$' + value.toFixed(0);
+                        }
+                      }
+                    }
+                  }
+                }
+              });
+            }
+
+            // Crear tarjetas de distribución por periodo
+            const periodosContainerEl = document.getElementById('periodosContainer');
+            if (periodosContainerEl) {
+              periodosContainerEl.innerHTML = '';
+
+              const periodos = [
+                { nombre: 'Mañana', icon: '🌅', horario: '6:00 - 12:00', data: data.distribucionPorPeriodo.mañana, clase: 'periodo-mañana' },
+                { nombre: 'Tarde', icon: '☀️', horario: '12:00 - 18:00', data: data.distribucionPorPeriodo.tarde, clase: 'periodo-tarde' },
+              ];
+
+              periodos.forEach(periodo => {
+                const periodoCard = document.createElement('div');
+                periodoCard.className = `periodo-card ${periodo.clase}`;
+                periodoCard.innerHTML = `
+                  <div class="periodo-header">
+                    <div>
+                      <div class="periodo-icon">${periodo.icon}</div>
+                      <div class="periodo-nombre">${periodo.nombre}</div>
+                      <div class="periodo-horario">${periodo.horario}</div>
+                    </div>
+                  </div>
+                  <div class="periodo-stats">
+                    <div class="periodo-stat">
+                      <span class="periodo-stat-label">Ventas</span>
+                      <span class="periodo-stat-value">${formatMoney(periodo.data.total)}</span>
+                    </div>
+                    <div class="periodo-stat">
+                      <span class="periodo-stat-label">Transacciones</span>
+                      <span class="periodo-stat-value">${periodo.data.ventas}</span>
+                    </div>
+                  </div>
+                `;
+                periodosContainerEl.appendChild(periodoCard);
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error al cargar análisis de horarios:', error);
+        }
+      }
+
+      // Función para cargar y mostrar métricas mensuales
+      async function cargarMetricas() {
+        try {
+          const response = await fetch('/api/metricas-mensuales');
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            const data = result.data;
+
+            // Actualizar título
+            const titulo = document.getElementById('metricasTitulo');
+            if (titulo) {
+              titulo.textContent = `Ventas Diarias - ${data.mes.charAt(0).toUpperCase() + data.mes.slice(1)} ${data.año}`;
+            }
+
+            // Actualizar resumen mensual
+            const totalEfectivo = typeof data.total_efectivo === 'string' ? parseFloat(data.total_efectivo) : (data.total_efectivo || 0);
+            const totalTransferencia = typeof data.total_transferencia === 'string' ? parseFloat(data.total_transferencia) : (data.total_transferencia || 0);
+            const totalTerminal1 = typeof data.total_terminal1 === 'string' ? parseFloat(data.total_terminal1) : (data.total_terminal1 || 0);
+            const totalTerminal2 = typeof data.total_terminal2 === 'string' ? parseFloat(data.total_terminal2) : (data.total_terminal2 || 0);
+            const totalMes = totalEfectivo + totalTransferencia + totalTerminal1 + totalTerminal2;
+
+            const totalMensualEl = document.getElementById('totalMensual');
+            const entradasMensualEl = document.getElementById('entradasMensual');
+            const ventasMensualEl = document.getElementById('ventasMensual');
+
+            if (totalMensualEl) totalMensualEl.textContent = formatMoney(totalMes);
+            if (entradasMensualEl) entradasMensualEl.textContent = String(data.total_entradas || 0);
+            if (ventasMensualEl) ventasMensualEl.textContent = String(data.total_ventas || 0);
+
+            // Preparar datos para la gráfica
+            const labels = data.ventasPorDia.map((d) => `Día ${d.dia}`);
+            const ventasData = data.ventasPorDia.map((d) => d.total);
+
+            // Destruir gráficas anteriores si existen
+            if (chartInstance) {
+              chartInstance.destroy();
+            }
+            if (chartSemanalInstance) {
+              chartSemanalInstance.destroy();
+            }
+            if (chartHorariosInstance) {
+              chartHorariosInstance.destroy();
+            }
+
+            // Crear nueva gráfica diaria
+            const ctx = document.getElementById('chartVentasDiarias');
+            if (ctx) {
+              // Detectar si es móvil
+              const isMobile = window.innerWidth <= 768;
+              const isSmallMobile = window.innerWidth <= 480;
+
+              chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                  labels: labels,
+                  datasets: [{
+                    label: 'Ventas ($)',
+                    data: ventasData,
+                    backgroundColor: 'rgba(159, 122, 234, 0.7)',
+                    borderColor: 'rgba(159, 122, 234, 1)',
+                    borderWidth: 2,
+                    borderRadius: isSmallMobile ? 4 : 6,
+                  }]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: true,
+                  aspectRatio: isSmallMobile ? 1 : (isMobile ? 1.3 : 2),
+                  plugins: {
+                    legend: {
+                      display: true,
+                      position: 'top',
+                      labels: {
+                        font: {
+                          size: isSmallMobile ? 11 : (isMobile ? 12 : 14)
+                        },
+                        padding: isMobile ? 10 : 15
+                      }
+                    },
+                    tooltip: {
+                      callbacks: {
+                        label: function(context) {
+                          return 'Ventas: $' + context.parsed.y.toFixed(2);
+                        }
+                      },
+                      titleFont: {
+                        size: isSmallMobile ? 11 : 13
+                      },
+                      bodyFont: {
+                        size: isSmallMobile ? 10 : 12
+                      }
+                    }
+                  },
+                  scales: {
+                    x: {
+                      ticks: {
+                        font: {
+                          size: isSmallMobile ? 9 : (isMobile ? 10 : 12)
+                        },
+                        maxRotation: isMobile ? 45 : 0,
+                        minRotation: isMobile ? 45 : 0,
+                        autoSkip: true,
+                        maxTicksLimit: isSmallMobile ? 10 : (isMobile ? 15 : 31)
+                      }
+                    },
+                    y: {
+                      beginAtZero: true,
+                      ticks: {
+                        font: {
+                          size: isSmallMobile ? 10 : (isMobile ? 11 : 12)
+                        },
+                        callback: function(value) {
+                          return '$' + value.toFixed(0);
+                        }
+                      }
+                    }
+                  }
+                }
+              });
+            }
+
+            // Crear gráfica semanal
+            if (data.ventasPorSemana && data.ventasPorSemana.length > 0) {
+              const labelsSemanales = data.ventasPorSemana.map((s) => `Semana ${s.semana}`);
+              const ventasSemanales = data.ventasPorSemana.map((s) => s.total);
+
+              const ctxSemanal = document.getElementById('chartVentasSemanales');
+              if (ctxSemanal) {
+                const isMobile = window.innerWidth <= 768;
+                const isSmallMobile = window.innerWidth <= 480;
+
+                chartSemanalInstance = new Chart(ctxSemanal, {
+                  type: 'bar',
+                  data: {
+                    labels: labelsSemanales,
+                    datasets: [{
+                      label: 'Ventas ($)',
+                      data: ventasSemanales,
+                      backgroundColor: 'rgba(72, 187, 120, 0.7)',
+                      borderColor: 'rgba(72, 187, 120, 1)',
+                      borderWidth: 2,
+                      borderRadius: isSmallMobile ? 4 : 6,
+                    }]
+                  },
+                  options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: isSmallMobile ? 1.2 : (isMobile ? 1.5 : 2.5),
+                    plugins: {
+                      legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                          font: {
+                            size: isSmallMobile ? 11 : (isMobile ? 12 : 14)
+                          },
+                          padding: isMobile ? 10 : 15
+                        }
+                      },
+                      tooltip: {
+                        callbacks: {
+                          label: function(context) {
+                            const index = context.dataIndex;
+                            const semana = data.ventasPorSemana[index];
+                            return [
+                              'Ventas: $' + context.parsed.y.toFixed(2),
+                              'Transacciones: ' + semana.ventas,
+                              'Entradas: ' + semana.entradas
+                            ];
+                          }
+                        },
+                        titleFont: {
+                          size: isSmallMobile ? 11 : 13
+                        },
+                        bodyFont: {
+                          size: isSmallMobile ? 10 : 12
+                        }
+                      }
+                    },
+                    scales: {
+                      x: {
+                        ticks: {
+                          font: {
+                            size: isSmallMobile ? 10 : (isMobile ? 11 : 12)
+                          }
+                        }
+                      },
+                      y: {
+                        beginAtZero: true,
+                        ticks: {
+                          font: {
+                            size: isSmallMobile ? 10 : (isMobile ? 11 : 12)
+                          },
+                          callback: function(value) {
+                            return '$' + value.toFixed(0);
+                          }
+                        }
+                      }
+                    }
+                  }
+                });
+              }
+
+              // Crear tarjetas de resumen por semana
+              const resumenSemanasEl = document.getElementById('resumenSemanas');
+              if (resumenSemanasEl) {
+                resumenSemanasEl.innerHTML = '';
+
+                // Encontrar el máximo de cada métrica para las barras de progreso
+                const maxTotal = Math.max(...data.ventasPorSemana.map(s => s.total));
+                const maxVentas = Math.max(...data.ventasPorSemana.map(s => s.ventas));
+                const maxEntradas = Math.max(...data.ventasPorSemana.map(s => s.entradas));
+
+                data.ventasPorSemana.forEach((semana, index) => {
+                  const semanaCard = document.createElement('div');
+                  semanaCard.className = `semana-card semana-${semana.semana}`;
+
+                  // Calcular porcentajes para barras de progreso
+                  const porcentajeTotal = maxTotal > 0 ? (semana.total / maxTotal * 100) : 0;
+                  const porcentajeVentas = maxVentas > 0 ? (semana.ventas / maxVentas * 100) : 0;
+                  const porcentajeEntradas = maxEntradas > 0 ? (semana.entradas / maxEntradas * 100) : 0;
+
+                  semanaCard.innerHTML = `
+                    <div class="semana-header">
+                      <div class="semana-numero-badge">
+                        <span class="semana-numero">S${semana.semana}</span>
+                      </div>
+                      <span class="semana-rango">📅 Días ${semana.rango}</span>
+                    </div>
+                    <div class="semana-stats">
+                      <div class="semana-stat">
+                        <div class="semana-stat-header">
+                          <span class="semana-stat-label">
+                            <span class="semana-stat-icon">💰</span>
+                            Total Vendido
+                          </span>
+                          <span class="semana-stat-value highlight">${formatMoney(semana.total)}</span>
+                        </div>
+                        <div class="semana-progress-bar">
+                          <div class="semana-progress-fill" style="width: ${porcentajeTotal}%"></div>
+                        </div>
+                      </div>
+
+                      <div class="semana-divider"></div>
+
+                      <div class="semana-stat">
+                        <div class="semana-stat-header">
+                          <span class="semana-stat-label">
+                            <span class="semana-stat-icon">📊</span>
+                            Transacciones
+                          </span>
+                          <span class="semana-stat-value">${semana.ventas}</span>
+                        </div>
+                        <div class="semana-progress-bar">
+                          <div class="semana-progress-fill" style="width: ${porcentajeVentas}%"></div>
+                        </div>
+                      </div>
+
+                      <div class="semana-divider"></div>
+
+                      <div class="semana-stat">
+                        <div class="semana-stat-header">
+                          <span class="semana-stat-label">
+                            <span class="semana-stat-icon">🎫</span>
+                            Entradas
+                          </span>
+                          <span class="semana-stat-value">${semana.entradas}</span>
+                        </div>
+                        <div class="semana-progress-bar">
+                          <div class="semana-progress-fill" style="width: ${porcentajeEntradas}%"></div>
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                  resumenSemanasEl.appendChild(semanaCard);
+                });
+              }
+            }
+          }
+
+          // Cargar análisis de horarios
+          await cargarAnalisisHorarios();
+        } catch (error) {
+          console.error('Error al cargar métricas:', error);
+        }
+      }
 
       if (btnDiario) {
         btnDiario.addEventListener('click', function() {
           document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
           this.classList.add('active');
+          mostrarReportes();
           cargarDatos('diario');
         });
       }
@@ -1058,9 +2341,32 @@ const porcentajeTerminal2 = totalGeneral > 0 ? (terminal2 / totalGeneral * 100) 
         btnSemanal.addEventListener('click', function() {
           document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
           this.classList.add('active');
+          mostrarReportes();
           cargarDatos('semanal');
         });
       }
+
+      if (btnMetricas) {
+        btnMetricas.addEventListener('click', function() {
+          document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
+          this.classList.add('active');
+          mostrarMetricas();
+          cargarMetricas();
+        });
+      }
+
+      // Listener para cambios de orientación y redimensionamiento
+      let resizeTimer;
+      window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+          // Si estamos en la vista de métricas y hay gráficas activas, recargarlas
+          const metricasVisible = metricasContainer && metricasContainer.style.display !== 'none';
+          if (metricasVisible && (chartInstance || chartSemanalInstance || chartHorariosInstance)) {
+            cargarMetricas();
+          }
+        }, 250);
+      });
     </script>
   </body>
 </html>
