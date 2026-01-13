@@ -87,7 +87,11 @@ export const GET: APIRoute = async () => {
     const ventasPorDia: any = {};
 
     ventas.forEach((venta: any) => {
-      const fecha = new Date(venta.fecha_hora);
+      // Convertir a zona horaria de México
+      const fechaMexico = new Date(venta.fecha_hora).toLocaleString("en-US", {
+        timeZone: "America/Mexico_City",
+      });
+      const fecha = new Date(fechaMexico);
       const dia = fecha.getDate();
 
       if (!ventasPorDia[dia]) {

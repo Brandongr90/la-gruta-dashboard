@@ -61,7 +61,11 @@ export const GET: APIRoute = async () => {
 
     // Procesar cada venta
     ventas.forEach((venta: any) => {
-      const fecha = new Date(venta.fecha_hora);
+      // Convertir a zona horaria de México
+      const fechaMexico = new Date(venta.fecha_hora).toLocaleString("en-US", {
+        timeZone: "America/Mexico_City",
+      });
+      const fecha = new Date(fechaMexico);
       const hora = fecha.getHours();
 
       ventasPorHora[hora].total += parseFloat(venta.monto_total) || 0;
